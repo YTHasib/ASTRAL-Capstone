@@ -19,6 +19,7 @@ module input_handler(
     output logic       data_ready // indicates that the data_out, task_id_out, and priority_out are valid and ready to be written to the FIFO
 );
 
+   //We know it's combinational logic because its output depends only on the current inputs and not on the previous values or clock cycles
     assign data_ready = !rst && !fifo_full; // Data is ready to be written to the FIFO if the system is not in reset and the FIFO is not full, data_valid condition isnt important because even if data_valid = 0, the data_out, task_id_out, and priority_out will still be valid and ready to be written to the FIFO
     assign fifo_write = data_valid && data_ready; // Write to FIFO if the incoming data is valid and the FIFO is ready to accept new data
     assign data_out = data_in; // Pass the incoming data to the output, the value is being presented to FIFO and isn't actually stored in it (data on wire)
