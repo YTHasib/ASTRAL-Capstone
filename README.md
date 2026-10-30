@@ -12,6 +12,7 @@ Task 1:Input Data Handling
 
         When reset:
         Clear output status
+
         Otherwise:
         Check if FIFO has space:
 
@@ -28,6 +29,10 @@ Task 1:Input Data Handling
         Do not accept new data
 
 ****FPGA should only accept a pixel when both data_valid and data_ready are 1 at clock edge. So that it prevents data from being accepted when there's no room.
+
+Completion of Task 1: <img width="542" height="195" alt="image" src="https://github.com/user-attachments/assets/cb0ea5dc-5d4d-4c91-bac8-7ff932d00f8e" />
+
+
 
 
 Task 2: Memory Buffer (FIFO)
