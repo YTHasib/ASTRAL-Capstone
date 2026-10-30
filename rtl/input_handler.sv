@@ -6,7 +6,7 @@ module input_handler(
     input logic [7:0] data_in, //an 8-bit input for one thermal pixel
     input logic       data_valid, //indicates that the data_in is valid and ready to be processed
     input logic [7:0] task_id, // an 8-bit input for the task ID associated with the incoming data
-    input logic [1:0] priority, // a 2-bit input for the priority level of the incoming data
+    input logic [1:0] task_priority, // a 2-bit input for the priority level of the incoming data
 
     //FIFO status
     input logic       fifo_full, // indicates that the FIFO is full and cannot accept new data
@@ -24,7 +24,7 @@ module input_handler(
     assign fifo_write = data_valid && data_ready; // Write to FIFO if the incoming data is valid and the FIFO is ready to accept new data
     assign data_out = data_in; // Pass the incoming data to the output, the value is being presented to FIFO and isn't actually stored in it (data on wire)
     assign task_id_out = task_id; // Pass the incoming task ID to the output, the value is being presented to FIFO and isn't actually stored in it (data on wire)
-    assign priority_out = priority; // Pass the incoming priority level to the output, the value is being presented to FIFO and isn't actually stored in it (data on wire)
+    assign priority_out = task_priority; // Pass the incoming priority level to the output, the value is being presented to FIFO and isn't actually stored in it (data on wire)
     
 
   
