@@ -28,3 +28,46 @@ Task 1:Input Data Handling
         Do not accept new data
 
 ****FPGA should only accept a pixel when both data_valid and data_ready are 1 at clock edge. So that it prevents data from being accepted when there's no room.
+
+
+Task 2: Memory Buffer (FIFO)
+- Purpose: It is a small memory buffer that stores incoming data in the order it arrives and retrieves the oldest data first. ASTRAL uses FIFO (First in First Out) because it allows for temporarily storage of pixels until the processing module is ready 
+- Connection to previous task: Task 2 builds on Task 1 by storing the incoming data, task id, and task priorities that the input handler forwards. While Task 1 checks whether data can be accepted, Task 2 temporarily stores it in a FIFO buffer until the FPGA is ready to process it. 
+- Pseudo Code:
+        INITIALIZE:
+            FIFO capacity = 4;
+            write_pointer = 0;
+            read_pointer = 0;
+            count = 0
+
+        WHEN reset occurs:
+            Clear read and write pointers
+            Set count to 0
+            Clear read status
+
+        ON each rising clock edge:
+        IF write_enable AND FIFO is not full:
+        Store incoming pixel
+        Store task ID
+        Store priority
+
+        Move write_pointer to next location
+
+        IF read_enable AND FIFO is not empty
+        Retrieve oldest pixel
+        Retrieve its task ID
+        Retrieve its priority 
+
+        Mark output as valid
+        Move read_ponter to next location
+
+        IF only a write succeeds:
+            Increase count by 1
+        ELSE IF only a read succeeds:
+            Decrease count by 1
+        ELSE:
+            Keep count unchanged
+        IF count equals FIFO capacity:
+            FIFO is full
+        IF count equals 0:
+            FIFO is empty
