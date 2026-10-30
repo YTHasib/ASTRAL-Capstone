@@ -28,3 +28,6 @@ Task 1:Input Data Handling
         Do not accept new data
 
 ****FPGA should only accept a pixel when both data_valid and data_ready are 1 at clock edge. So that it prevents data from being accepted when there's no room.
+
+Completion of Task 1: <img width="816" height="257" alt="image" src="https://github.com/user-attachments/assets/71ff78d4-fd5e-4944-b5bb-c3a4615f7c35" />
+
