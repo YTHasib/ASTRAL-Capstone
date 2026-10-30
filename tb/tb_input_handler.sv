@@ -68,6 +68,35 @@ module tb_input_handler;
         #1;//Wait for 1 time unit to allow the output signals to stabilize
         $display("FIFO Full Test: Ready = %b, Write = %b", data_ready, fifo_write);
 
+       
+       //Test 3: FIFO has space again, so the input_handler should write to the FIFO
+        @(negedge clk);//Wait for the next clock edge to allow the input_handler to process the incoming data
+        fifo_full = 0; //Indicate that the FIFO is not full and can accept
+
+        @(posedge clk); //Wait for the next clock edge to allow the input_handler to process the incoming data
+        #1;//Wait for 1 time unit to allow the output signals to stabilize
+
+        $display("FIFO Available: Ready = %b, Write = %b",data_ready, fifo_write);
+
+
+        //Test 4: Invalid data, so the input_handler should not write to the FIFO
+        @(negedge clk);//Wait for the next clock edge to allow the input_handler to process the incoming data
+        data_valid = 0; //Indicate that the incoming data is invalid
+
+        @(posedge clk); //Wait for the next clock edge to allow the input_handler to process the incoming data
+        #1;//Wait for 1 time unit to allow the output signals to stabilize
+
+        $display("Invalid Data: Ready = %b, Write = %b",data_ready, fifo_write);//Print the status signals to the console for verification
+        
+        //Test 5: Reset the system, so the input_handler should not write to the FIFO
+        @(negedge clk);//Wait for the next clock edge to allow the input_handler to process the incoming data
+        rst = 1; //Assert reset to the system
+
+        @(posedge clk); //Wait for the next clock edge to allow the input_handler to process the incoming data
+        #1;//Wait for 1 time unit to allow the output signals to stabilize
+
+        $display("Reset Test: Ready = %b, Write = %b",data_ready, fifo_write);//Print the status signals to the console for verification
+        
         #10; //Wait for 10 time units before ending the simulation
         $finish;
 
