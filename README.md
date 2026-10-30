@@ -10,20 +10,21 @@ Task 1:Input Data Handling
 - Purpose: thermal image pixels or sensor measurements that were assigned to this FPGA by the cooperation algorithim. It only makes sure that it does not detect forest fires yet but ensures that the thermal data gets into the FPGA correctly.
 - Pseudo Code 
 
-When reset:
-Clear output status
-Otherwise:
-Check if FIFO has space:
-IF FIFO is not full:
-    Tell sender "READY"
+        When reset:
+        Clear output status
+        Otherwise:
+        Check if FIFO has space:
 
-    IF incoming data is valid:
-        Accept the pixel
-        Forward it to FIFO
-        Request FIFO to write
-
-ELSE:
-    Tell sender "NOT READY"
-    Do not accept new data
+       IF FIFO is not full:
+        Tell sender "READY"
+    
+        IF incoming data is valid:
+            Accept the pixel
+            Forward it to FIFO
+            Request FIFO to write
+    
+        ELSE:
+        Tell sender "NOT READY"
+        Do not accept new data
 
 ****FPGA should only accept a pixel when both data_valid and data_ready are 1 at clock edge. So that it prevents data from being accepted when there's no room.
