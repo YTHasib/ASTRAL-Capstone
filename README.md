@@ -9,6 +9,7 @@ For example, during a forest fire, satellites can use thermal imaging to detect 
 Task 1:Input Data Handling 
 - Purpose: thermal image pixels or sensor measurements that were assigned to this FPGA by the cooperation algorithim. It only makes sure that it does not detect forest fires yet but ensures that the thermal data gets into the FPGA correctly.
 - Pseudo Code 
+
 When reset:
 Clear output status
 Otherwise:
