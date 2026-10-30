@@ -37,4 +37,4 @@ logic [1:0] priority_memory [0:FIFO_DEPTH-1]; //Memory array to hold the priorit
 // FIFO pointers and counter
 logic [1:0] write_pointer; //Pointer to keep track of the current write location in the FIFO (2 bits to index 4 locations)
 logic [1:0] read_pointer; //Pointers to keep track of the current write and read locations in the FIFO (2 bits to index 4 locations)
-logic [2:0] count; //Counter to keep track of the number of entries in the FIFO (3 bits to count up to 4)
+logic [2:0] count; //Counter to keep track of the number of entries in the FIFO (3 bits to count up to 4) 
