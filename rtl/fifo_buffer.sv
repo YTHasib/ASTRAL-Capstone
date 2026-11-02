@@ -19,7 +19,7 @@ module fifo_buffer (
     //FIFO status signals
     output logic fifo_full, // indicates that the FIFO is full and cannot accept new data
     output logic fifo_empty, // indicates that the FIFO is empty and cannot provide new data
-    output logic read_valid, // indicates that the data_out, task_id_out, and priority_out are valid and ready to be read from the FIFO
+    output logic read_valid // indicates that the data_out, task_id_out, and priority_out are valid and ready to be read from the FIFO
 
 
 
@@ -61,7 +61,7 @@ always_ff @(posedge clk or posedge rst) begin
 
         //Write data if requested and FIFO has space
         if (write_enable && !fifo_full) begin // Check if write is enabled and FIFO is not full
-            pixel memory[write_pointer]<=data_in; //Store the incoming data_in, task_id_in, and priority_in into the FIFO memory arrays at the current write_pointer location
+            pixel_memory[write_pointer]<=data_in; //Store the incoming data_in, task_id_in, and priority_in into the FIFO memory arrays at the current write_pointer location
             task_id_memory[write_pointer]<= task_id_in; // Store the incoming data_in, task_id_in, and priority_in into the FIFO memory arrays at the current write_pointer location
             priority_memory[write_pointer] <= priority_in; // Store the incoming data_in, task_id_in, and priority_in into the FIFO memory arrays at the current write_pointer location
 
@@ -70,7 +70,7 @@ always_ff @(posedge clk or posedge rst) begin
         end
         
         //Read data if requested and FIFO is not empty
-        if (read_enable && !fifo__empty) begin
+        if (read_enable && !fifo_empty) begin
             data_out <= pixel_memory[read_pointer];
             task_id_out <= task_id_memory[read_pointer];
             priority_out <= priority_memory[read_pointer];
@@ -80,7 +80,7 @@ always_ff @(posedge clk or posedge rst) begin
     
         end
         //Update the count of entries in the FIFO based on read and write operations
-        if (write_enable && !fifo_full && !(read_enable && !fifo_empty)begin
+        if (write_enable && !fifo_full && !(read_enable && !fifo_empty))begin
             count <=count + 1'b1; //Increment the count if we wrote to the FIFO but did not read from it)
         end
 

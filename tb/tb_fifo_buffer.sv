@@ -1,4 +1,4 @@
-timescale 1ns/1ps
+`timescale 1ns/1ps
 
 module tb_fifo_buffer;
 
@@ -76,7 +76,10 @@ module tb_fifo_buffer;
 
       //Stop writing after one pixel
       @(negedge clk);
-    write_enable = 0;
+      write_enable = 0;
+
+        #10;
+        $finish;
     
     end  
 
