@@ -78,6 +78,53 @@ module tb_fifo_buffer;
       @(negedge clk);
       write_enable = 0;
 
+
+
+      //Test 2: Read the thermal pixel from FIFO
+      read_enable = 1;
+      @(posedge clk);
+      #1;
+
+      $display("Pixel = %0d, Task ID = %0d, Priority = %0d", data_out, task_id_out, priority_out); // Display the read values from the FIFO
+      $display("FIFO Count = %0d, Empty = %b, Read Valid = %b",dut.count, fifo_empty, read_valid);// Display the FIFO status after reading
+      @(negedge clk);
+      read_enable = 0;
+       
+
+       //Test 3: Reading when the FIFO is empty
+       read_enable =1; //The FIFO is now empty after the previous read, so this read should not be valid
+       @(posedge clk);
+       #1;
+
+       $display("Empty Read Test: Count = %0d, Empty = %b, Read Valid = %b", dut.count, fifo_empty, read_valid);
+
+       @(negedge clk);
+       read_enable = 0; //Stop reading
+       
+       
+       //Test 4: Fill the FIFO
+       @(negedge clk);
+       write_enable = 1;
+        data_in = 8'd35;
+
+        @(negedge clk);
+        data_in = 8'd42;
+
+        @(negedge clk);
+        data_in = 8'd85;
+
+        @(negedge clk);
+        data_in = 8'd47;
+
+        @(posedge clk);
+        #1;
+
+        $display("FIFO Full Test: Count = %0d, Full = %b, Empty = %b",
+                dut.count, fifo_full, fifo_empty);
+
+        @(negedge clk);
+        write_enable = 0;
+
         #10;
         $finish;
     
