@@ -226,6 +226,28 @@ module tb_fifo_buffer;
         $display("Write Pointer = %0d, Read Pointer = %0d, Read Valid = %b", dut.write_pointer, dut.read_pointer, read_valid);
         #2 rst = 0;  // Release reset before next rising clock edge
 
+
+
+        //Final Check: Verify write pointer wraparound
+        //The write pointer wraps from 3 back to 0 because the FIFO has only 4 memory locations (0–3). Count reaches 4 because it tracks the number of stored entries, not the memory address.
+        @(negedge clk);
+        write_enable = 1;
+        data_in = 8'd70;
+
+        repeat (4) begin
+            @(posedge clk);
+            #1;
+
+            $display("Write Pointer = %0d, Count = %0d", dut.write_pointer, dut.count);
+
+            @(negedge clk);
+            data_in = data_in + 1; //Increment the pixel value for the next write
+
+        end
+
+        write_enable = 0; //Stop requesting writes
+
+
         #10;
         $finish;
     
