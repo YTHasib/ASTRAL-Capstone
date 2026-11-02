@@ -119,11 +119,112 @@ module tb_fifo_buffer;
         @(posedge clk);
         #1;
 
-        $display("FIFO Full Test: Count = %0d, Full = %b, Empty = %b",
-                dut.count, fifo_full, fifo_empty);
+        $display("FIFO Full Test: Count = %0d, Full = %b, Empty = %b", dut.count, fifo_full, fifo_empty);
 
         @(negedge clk);
         write_enable = 0;
+
+        //Test 5: Attempt tp write when FIFO is full
+        @(negedge clk);
+        data_in = 8'd99; //This write should not be accepted since the FIFO is full
+        write_enable = 1;
+
+        @(posedge clk);
+        #1;
+
+        $display("Overflow Test: Count = %0d, Full = %b", dut.count, fifo_full); //Count should still be 4
+
+        @(negedge clk);
+        write_enable = 0;
+
+        //Test 6: Read all the data from the FIFO
+        read_enable = 1;
+
+        repeat (4) begin //Read 4 times to empty the FIFO, its like a loop that will read until the FIFO is empty
+            @(posedge clk);
+            #1;
+            $display("Read Test: Pixel = %0d, Task ID = %0d, Priority = %0d, Count = %0d, Empty = %b, Read Valid = %b", data_out, task_id_out, priority_out, dut.count, fifo_empty, read_valid);
+        end
+
+        @(negedge clk);
+        read_enable = 0;//stops requesting reads from the FIFO
+
+        //Test 7: Prepare for simultaneous read and write operations
+       
+        //Step 1: Prepare pixel 61 to be stored in FIFO
+        data_in = 8'd61; //Set incoming thermal pixel to 61
+        task_id_in = 8'd22; //Pixel belongs to task 22
+        priority_in = 2'b10; //assign a priority level of 2 to this pixel
+        write_enable = 1;  //Request a write (not stored yet, will be stored on the next posedge clk)
+
+        @(posedge clk); //At this rising edge, FIFO stores pixel 61
+        #1;
+
+        $display("Test 7 Setup: Count = %0d", dut.count); // Display the FIFO count after writing one pixel
+        //Count should now be 1 because pixel 61 was stored
+
+        
+        //Step 2: Prepare to read pixel 61 and write pixel 62 simultaneously
+        @(negedge clk);//Wait for falling edge to change inputs safely
+        data_in = 8'd62; //Set incoming thermal pixel to 62(not stored yet)
+        task_id_in = 8'd23; //Pixel belongs to task 23
+        priority_in = 2'b11; //assign a priority level of 3 to this pixel
+        read_enable = 1; //request a read for the oldest pixel (61)
+        //write_enable is already 1, so a write is also requested
+
+        //Step 3: Perform both read and write operations on the next rising edge of the clock
+        @(posedge clk); //FIFO reads pixel 61 and stores pixel 62
+        #1; //Wait for output and counter to update
+
+        $display("Simultaneous Test: Pixel Read = %0d, Count = %0d, Read Valid = %b",data_out, dut.count, read_valid);
+
+        //Step 4: Stop requesting reads and writes  
+        @(negedge clk);
+        write_enable = 0;
+        read_enable = 0;
+
+        //***The negedge changes the input, but the posedge is when your FIFO actually reads and writes the data
+
+        //Step 5: Verify that pixel 62 was stored
+
+        @(negedge clk);
+        read_enable = 1; //Request a read from the remaining pixel
+
+        @(posedge clk); //FIFO reads pixel 62
+        #1; //Wait for output and counter to update
+
+         $display("Verify Pixel 62: Pixel = %0d, Task ID = %0d, Priority = %0d, Count = %0d, Empty = %b, Read Valid = %b", data_out, task_id_out, priority_out, dut.count, fifo_empty, read_valid);
+
+         @(negedge clk);
+         read_enable = 0; //Stop requesting reads
+
+
+         //Test 8: Reset the FIFO, as we want to see if it clears the pointers and counters too 
+
+         //Step 1: Store a pixel before resettng
+        @(negedge clk);
+        data_in = 8'd90;
+        task_id_in = 8'd25;
+        priority_in = 2'b11;
+        write_enable = 1;
+
+        @(posedge clk); //FIFO stores pixel 90
+        #1;//Wait for registers to update
+
+        $display("Before Reset: Count = %0d, Empty = %b", dut.count, fifo_empty);
+
+        @(negedge clk);
+        write_enable = 0; //Stop requesting writes
+
+
+        //Test 8: Activate reset while FIFO contains data
+        #2 rst = 1; //Activate reset 2 ns after falling edge
+        #1; //Allow time for reset to propagate
+
+        $display("After Reset: Count = %0d, Empty = %b, Full = %b", dut.count, fifo_empty, fifo_full);
+
+        $display("Write Pointer = %0d, Read Pointer = %0d, Read Valid = %b", dut.write_pointer, dut.read_pointer, read_valid);
+        #2 rst = 0;  // Release reset before next rising clock edge
 
         #10;
         $finish;
