@@ -6,10 +6,10 @@ ASTRAL is a satellite cooperative computing project that enables multiple FPGA b
 Unlike traditional satellites that mainly rely on their own processing power, ASTRAL allows satellites to help each other complete tasks. This can reduce delays, make better use of available resources and help older satellites handle more demading tasks without needing expensive upgrades.
 For example, during a forest fire, satellites can use thermal imaging to detect areas of extreme heat. If one satellite is overwhelmed with data, ASTRAL allows it to share the work with another satellite, helping identify potential fires faster and deliver important information to emergency responders sooner. 
 
-Task 1:Input Data Handling 
+## Task 1:Input Data Handling 
 - Purpose: thermal image pixels or sensor measurements that were assigned to this FPGA by the cooperation algorithim. It only makes sure that it does not detect forest fires yet but ensures that the thermal data gets into the FPGA correctly.
-- Pseudo Code 
-
+- Pseudo Code: 
+```text
         When reset:
         Clear output status
 
@@ -27,15 +27,17 @@ Task 1:Input Data Handling
         ELSE:
         Tell sender "NOT READY"
         Do not accept new data
+```
 
 ****FPGA should only accept a pixel when both data_valid and data_ready are 1 at clock edge. So that it prevents data from being accepted when there's no room.
 
 
 
-Task 2: Memory Buffer (FIFO)
+## Task 2: Memory Buffer (FIFO)
 - Purpose: It is a small memory buffer that stores incoming data in the order it arrives and retrieves the oldest data first. ASTRAL uses FIFO (First in First Out) because it allows for temporarily storage of pixels until the processing module is ready 
 - Connection to previous task: Task 2 builds on Task 1 by storing the incoming data, task id, and task priorities that the input handler forwards. While Task 1 checks whether data can be accepted, Task 2 temporarily stores it in a FIFO buffer until the FPGA is ready to process it. 
 - Pseudo Code:
+```text
         INITIALIZE:
             FIFO capacity = 4;
             write_pointer = 0;
@@ -73,3 +75,45 @@ Task 2: Memory Buffer (FIFO)
             FIFO is full
         IF count equals 0:
             FIFO is empty
+```
+
+
+## Task 3: Memory Read/Write Control (using a simple FSM)
+- Purpose: Now we want to control when stored data should be retrieved from FIFO and delivered to the processing module. It builds on Task 2 by making sure data is only retrieved when available and is safely passed to the processor when it's ready, preventing data loss.  
+- Connection to previous task: Task 3 builds on Task 2 by controlling when stored data is read from the FIFO buffer and sent to the processing module. While Task 2 focuses on storing and retrieving data, Task 3 ensures that data is transferred at the right time without losing any information. For example, in Task 2, the testbench manually controlled the write_enable and read_enable signals. However, in the actual system, these operations must be controlled automatically by the hardware rather than relying on a testbench. 
+- Pseudo Code:
+```text
+        START
+        1. Initialize/Reset
+            - Set state to IDLE
+            - Set fifo_read_enable = 0
+            - Set processor_data_valid = 0
+            - Clear output data, task ID, and priority
+        2. Check current state <-- FSM starts here
+        IF state == IDLE:
+            - Check if FIFO is not empty
+            - IF data is available:
+            - Set fifo_read_enable = 1
+            - Request the next FIFO entry
+            - Move to WAIT_DATA
+        ELSE IF state == WAIT_DATA:
+            - Set fifo_read_enable = 0
+            - Wait for fifo_read_valid = 1
+            - IF data is valid:
+                - store the pixel data
+                - store the task ID
+                - store the task priority
+                - set processor_data_valid = 1
+                - Move to HOLD_DATA
+        ELSE IF state == HOLD_DATA:
+            - Keep the stored data unchanged
+            - IF processor_ready = 1:
+                - Complete the data transfer
+                - Set processor_data_valid = 0
+                - Return to IDLE
+            - ELSE: 
+                - Continue holding the data
+        3. Repeat until reset
+
+        END
+```
