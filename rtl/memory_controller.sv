@@ -19,7 +19,7 @@ module memory_controller (
     output logic [7:0] processor_data_out, //an 8-bit output for one thermal pixel to the processor
     output logic [7:0] processor_task_id_out, // an 8-bit output for the task ID associated with the outgoing data to the processor
     output logic [1:0] processor_priority_out, // a 2-bit output for the priority level of the outgoing data to the processor
-    output logic       processor_data_valid, // indicates that the processor_data_out, processor_task_id_out, and processor_priority_out are valid and ready to be read by the processor
+    output logic       processor_data_valid // indicates that the processor_data_out, processor_task_id_out, and processor_priority_out are valid and ready to be read by the processor
 
 );
 
