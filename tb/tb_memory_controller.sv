@@ -147,6 +147,191 @@ initial begin
     @(negedge clk);
     fifo_read_valid = 1'b0;
 
+    //Test 5: Processor Busy - Hold Data
+    @(negedge clk);
+    processor_ready = 1'b0;  // Processor is busy
+
+    //Wait for two clock cycles
+    repeat (2) begin
+        @(posedge clk);
+        #1;
+    end
+
+    //Display test name and results
+    $display("Test 5: Processor Busy - Hold Data");
+    $display("State = %0d, Pixel = %0d, Task ID = %0d, Priority = %0d, Data Valid = %b",
+             dut.state, processor_data_out,
+             processor_task_id_out, processor_priority_out,
+             processor_data_valid);
+
+    //Automatically verify that the controller holds the data when the processor is busy
+     if (dut.state !== 2'b10 ||
+        processor_data_out !== 8'd85 ||
+        processor_task_id_out !== 8'd17 ||
+        processor_priority_out !== 2'd2 ||
+        processor_data_valid !== 1'b1 ||
+        fifo_read_enable !== 1'b0)
+        $fatal(1, "FAIL: Processor Busy - Hold Data");
+    else
+        $display("PASS: Processor Busy - Hold Data");
+
+
+//Test 6 Processor Ready  - Complete Transfer
+    @(negedge clk);
+    processor_ready = 1'b1;  // Processor is ready
+    fifo_empty = 1'b1;      // FIFO is empty
+
+    @(posedge clk);
+    #1;
+
+    //Display test name and results
+    $display("Test 6: Processor Ready - Complete Transfer");
+    $display("State = %0d, Processor Ready = %b, Data Valid = %b, Read Enable = %b",
+             dut.state, processor_ready,
+             processor_data_valid, fifo_read_enable);
+    
+    // Automatically verify the completed transfer
+    if (dut.state !== 2'b00 ||
+        processor_data_valid !== 1'b0 ||
+        fifo_read_enable !== 1'b0 ||
+        processor_data_out !== 8'd85 ||
+        processor_task_id_out !== 8'd17 ||
+        processor_priority_out !== 2'd2)
+        $fatal(1, "FAIL: Processor Ready - Complete Transfer");
+    else
+        $display("PASS: Processor Ready - Complete Transfer");
+
+//Test 7: Multiple Cosecutive Transfers
+  $display("Test 7: Multiple Consecutive Transfers");
+
+    for (int i = 0; i < 2; i++) begin
+
+        // Step 1: Make new FIFO data available
+        @(negedge clk);
+        fifo_empty = 1'b0;
+        fifo_read_valid = 1'b0;
+        processor_ready = 1'b1;
+        #1;
+
+        // Verify the controller requests a read
+        if (dut.state !== 2'b00 ||
+            fifo_read_enable !== 1'b1)
+            $fatal(1, "FAIL: FIFO Read Request");
+
+        @(posedge clk);
+        #1;
+
+        // Verify transition to WAIT_DATA
+        if (dut.state !== 2'b01)
+            $fatal(1, "FAIL: WAIT_DATA Transition");
+
+        // Step 2: Simulate FIFO returning data
+        @(negedge clk);
+        fifo_empty = 1'b1;
+        fifo_read_valid = 1'b1;
+
+        fifo_data_in = 8'd90 + i;
+        fifo_task_id_in = 8'd21 + i;
+        fifo_priority_in = (i == 0) ? 2'd1 : 2'd2;
+
+        @(posedge clk);
+        #1;
+
+        // Display results
+        $display("Transfer %0d: State = %0d, Pixel = %0d, Task ID = %0d, Priority = %0d, Valid = %b",
+                 i + 1, dut.state, processor_data_out,
+                 processor_task_id_out, processor_priority_out,
+                 processor_data_valid);
+
+        // Verify correct data reception
+        if (dut.state !== 2'b10 ||
+            processor_data_out !== fifo_data_in ||
+            processor_task_id_out !== fifo_task_id_in ||
+            processor_priority_out !== fifo_priority_in ||
+            processor_data_valid !== 1'b1)
+            $fatal(1, "FAIL: Transfer %0d Data Reception", i + 1);
+
+        // Step 3: Processor accepts the data
+        @(negedge clk);
+        fifo_read_valid = 1'b0;
+
+        @(posedge clk);
+        #1;
+
+        // Verify controller returns to IDLE
+        if (dut.state !== 2'b00 ||
+            processor_data_valid !== 1'b0)
+            $fatal(1, "FAIL: Transfer %0d Completion", i + 1);
+
+    end
+
+    $display("PASS: Multiple Consecutive Transfers");
+
+
+//Test 8: Reset During Actice Transfer
+    $display("Test 8: Reset During Active Transfer");
+
+    // Step 1: Simulate new data becoming available
+    @(negedge clk);
+    processor_ready = 1'b0; // Processor is busy
+    fifo_empty = 1'b0;
+    fifo_read_valid = 1'b0;
+
+    @(posedge clk);
+    #1;
+
+    // Verify transition to WAIT_DATA
+    if (dut.state !== 2'b01)
+        $fatal(1, "FAIL: Controller did not enter WAIT_DATA");
+
+    // Step 2: Simulate receiving valid FIFO data
+    @(negedge clk);
+    fifo_empty = 1'b1;
+    fifo_read_valid = 1'b1;
+    fifo_data_in = 8'd120;
+    fifo_task_id_in = 8'd33;
+    fifo_priority_in = 2'd3;
+
+    @(posedge clk);
+    #1;
+
+    // Verify data is being held
+    if (dut.state !== 2'b10 ||
+        processor_data_valid !== 1'b1)
+        $fatal(1, "FAIL: Controller did not enter HOLD_DATA");
+
+    $display("Before Reset: State = %0d, Pixel = %0d, Task ID = %0d, Priority = %0d, Data Valid = %b",
+             dut.state, processor_data_out,
+             processor_task_id_out, processor_priority_out,
+             processor_data_valid);
+
+    // Step 3: Activate reset during HOLD_DATA
+    @(negedge clk);
+    fifo_read_valid = 1'b0;
+    rst = 1'b1;
+    #1;
+
+    // Display results after reset
+    $display("After Reset: State = %0d, Pixel = %0d, Task ID = %0d, Priority = %0d, Data Valid = %b, Read Enable = %b",
+             dut.state, processor_data_out,
+             processor_task_id_out, processor_priority_out,
+             processor_data_valid, fifo_read_enable);
+
+    // Step 4: Automatically verify reset conditions
+    if (dut.state !== 2'b00 ||
+        processor_data_out !== 8'd0 ||
+        processor_task_id_out !== 8'd0 ||
+        processor_priority_out !== 2'd0 ||
+        processor_data_valid !== 1'b0 ||
+        fifo_read_enable !== 1'b0)
+        $fatal(1, "FAIL: Reset During Active Transfer");
+    else
+        $display("PASS: Reset During Active Transfer");
+
+    // Release reset
+    @(negedge clk);
+    rst = 1'b0;
+
         $finish;
 
 
