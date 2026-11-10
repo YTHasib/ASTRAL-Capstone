@@ -117,3 +117,41 @@ For example, during a forest fire, satellites can use thermal imaging to detect 
 
         END
 ```
+
+## Task 4
+- Purpose: The purpose of this task is to recieve thermal pixel data from the memory controller which was designed in task 3, to analyze the pixel values and determine whether they exceed a specified threshold. For instance if the pixel value exceeds 100, the module will flag it as potential hotspot. This threshold represents a digital pixel value, not necessarily a temperature in degrees.
+- Connection to previous task: Task 4 builds on Task 3 by processing the thermal pixel data transferred from Memory Controller. While Task3 controls when data is sent to the processor, Task 4 performs the actual analysis. It also uses handshaking signals to inform Task 3 when it is ready to recieve new data.
+- Pseudo: 
+```
+START
+
+1. Initialize/Reset:
+    - Clear output data, task Id, and priority
+    - Set hotspot_flag = 0
+    - Set result_valid = 0
+
+2. Check if data can be processed:
+    - Set processor_ready based on whether the module can accept new data
+    - Wait for data_valid = 1 and processor_ready = 1
+
+3. Processing incoming data:
+    - Recieve thermal pixel value
+    - Store task ID and priority
+
+    IF pixel value > 100:
+        - Set hotspot_flag = 1
+    ELSE: 
+        - Set hotspot_flag = 0
+
+4. Output results:
+    - Store processed pixel value
+    - Output task ID and priority
+    - Set result_valid = 1
+
+5. Repeat:
+    - Clear result_valid wen no new result is produced
+    - Wait for the next valid pixel
+
+END
+
+```
