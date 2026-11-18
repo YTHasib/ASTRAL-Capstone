@@ -157,9 +157,6 @@ END
 ```
 
 
-## Task 5
-
-
 ## Task 5: Task Priority and Interrupt Controller (FSM)
 
 - Purpose: The purpose of Task 5 is to control which task gets processed based on its priority. If a higher-priority task arrives while a lower-priority task is running, the controller pauses the current task, saves its progress, and processes the more urgent task first. Once the high-priority task is complete, the controller resumes the original task from where it stopped instead of restarting it.
