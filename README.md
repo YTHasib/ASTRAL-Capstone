@@ -155,3 +155,91 @@ START
 END
 
 ```
+
+
+## Task 5
+
+
+## Task 5: Task Priority and Interrupt Controller (FSM)
+
+- Purpose: The purpose of Task 5 is to control which task gets processed based on its priority. If a higher-priority task arrives while a lower-priority task is running, the controller pauses the current task, saves its progress, and processes the more urgent task first. Once the high-priority task is complete, the controller resumes the original task from where it stopped instead of restarting it.
+
+- Connection to previous tasks: Task 5 builds on Tasks 1–4 by introducing priority-based task management. Previously, we designed modules to receive incoming data, store it in the FIFO, control when it is retrieved, and process thermal pixels. However, these modules do not decide which task should be processed first. Task 5 adds this functionality by comparing task priorities and controlling when tasks should run, pause, and resume.
+
+- Pseudo Code:
+
+```text
+START
+
+1. Initialize/Reset
+    - Set state to IDLE
+    - Clear current task ID and priority
+    - Set steps_completed = 0
+    - Clear saved task information
+    - Set task_done = 0
+
+2. Check if a new task can be accepted
+    - IF controller is IDLE:
+        - Allow a new valid task
+    - ELSE IF a task is RUNNING:
+        - Compare incoming priority with current priority
+        - IF incoming priority is higher and no task is already saved:
+            - Allow the new task to interrupt
+    - ELSE:
+        - Do not accept another task
+
+3. Check current state <-- FSM starts here
+
+    IF state == IDLE:
+        - Wait for a valid task
+        - IF a task is accepted:
+            - Store task ID, priority, and total steps
+            - Set steps_completed = 0
+            - Move to RUNNING
+
+    ELSE IF state == RUNNING:
+        - Check if a higher-priority task is accepted
+        - IF a higher-priority task arrives:
+            - Save the current task ID
+            - Save the current task priority
+            - Save the current task progress
+            - Store the urgent task information
+            - Move to PAUSE
+
+        - ELSE IF the current task reaches its final step:
+            - Complete the final processing step
+            - Set task_done = 1
+            - Return to IDLE
+
+        - ELSE:
+            - Continue processing the current task
+            - Increment steps_completed by 1
+
+    ELSE IF state == PAUSE:
+        - Load the higher-priority task information
+        - Set steps_completed = 0
+        - Move to HIGH_PRIORITY
+
+    ELSE IF state == HIGH_PRIORITY:
+        - Process the urgent task
+        - IF the final processing step is reached:
+            - Set task_done = 1
+            - Save the completed task ID
+            - Move to RESUME
+        - ELSE:
+            - Increment steps_completed by 1
+
+    ELSE IF state == RESUME:
+        - Restore the interrupted task ID
+        - Restore the previous task priority
+        - Restore the saved progress
+        - Clear the saved task indicator
+        - Return to RUNNING
+
+    ELSE:
+        - Return to IDLE
+
+4. Repeat until reset
+
+END
+```
