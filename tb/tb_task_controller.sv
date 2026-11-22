@@ -140,6 +140,48 @@ module tb_task_controller;
         task_valid = 1'b0;
 
 
+    // Test 3: Normal Task Completion
+
+    // Allow the task to complete its first 3 steps
+    repeat (3) begin
+        @(posedge clk);
+        #1;
+    end
+
+    // Display progress before completion
+    $display("\nTest 3: Normal Task Completion");
+    $display("Before Completion: State = %0d, Task ID = %0d, Steps = %0d, Done = %b",
+             dut.state, active_task_id,
+             steps_completed, task_done);
+
+    // Verify that the task is still running
+    if (dut.state !== 3'b001 ||
+        steps_completed !== 8'd3 ||
+        task_done !== 1'b0)
+        $fatal(1, "FAIL: Task Progress Verification");
+
+    // Complete the fourth and final processing step
+    @(posedge clk);
+    #1;
+
+    // Display results after task completion
+    $display("After Completion: State = %0d, Completed Task ID = %0d, Steps = %0d, Busy = %b, Done = %b",
+             dut.state, completed_task_id,
+             steps_completed, busy, task_done);
+
+    // Automatically verify successful task completion
+    if (dut.state !== 3'b000 ||
+        completed_task_id !== 8'd17 ||
+        steps_completed !== 8'd4 ||
+        busy !== 1'b0 ||
+        task_done !== 1'b1 ||
+        process_enable !== 1'b0)
+        $fatal(1, "FAIL: Normal Task Completion");
+    else
+        $display("PASS: Normal Task Completion");
+
+
+
     end
 
 
