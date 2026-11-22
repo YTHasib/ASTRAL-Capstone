@@ -441,6 +441,107 @@ module tb_task_controller;
     task_valid = 1'b0;
 
 
+    // Test 9: Reset During an Interrupted Task
+
+    $display("\nTest 9: Reset During an Interrupted Task");
+
+    // Step 1: Reset to create a clean starting condition
+    #1 rst = 1'b1;
+    task_valid = 1'b0;
+    #1;
+
+    @(negedge clk);
+    rst = 1'b0;
+
+    // Step 2: Start a low-priority Task A
+    @(negedge clk);
+    task_valid = 1'b1;
+    task_id_in = 8'd31;          // Task A
+    task_priority_in = 2'd1;     // Low priority
+    task_steps_in = 8'd5;        // Requires 5 steps
+
+    @(posedge clk);
+    #1;
+
+    // Stop requesting Task A
+    @(negedge clk);
+    task_valid = 1'b0;
+
+    // Allow Task A to complete 2 steps
+    repeat (2) begin
+        @(posedge clk);
+        #1;
+    end
+
+    // Step 3: Introduce higher-priority Task B
+    @(negedge clk);
+    task_valid = 1'b1;
+    task_id_in = 8'd32;          // Task B
+    task_priority_in = 2'd3;     // Higher priority
+    task_steps_in = 8'd2;
+
+    @(posedge clk);
+    #1;
+
+    // Verify Task A was paused and its progress saved
+    if (dut.state !== 3'b010 ||
+        dut.saved_valid !== 1'b1 ||
+        dut.saved_progress !== 8'd2)
+        $fatal(1, "FAIL: Task A Was Not Paused");
+
+    // Step 4: Switch to Task B
+    @(negedge clk);
+    task_valid = 1'b0;
+
+    @(posedge clk);
+    #1;
+
+    // Display task information before reset
+    $display("Before Reset: State = %0d, Active Task = %0d, Saved Task = %0d, Saved Steps = %0d, Paused = %b",
+             dut.state, active_task_id,
+             dut.saved_task_id, dut.saved_progress,
+             task_paused);
+
+    // Verify Task B is active and Task A is saved
+    if (dut.state !== 3'b011 ||
+        active_task_id !== 8'd32 ||
+        dut.saved_task_id !== 8'd31 ||
+        task_paused !== 1'b1)
+        $fatal(1, "FAIL: Interrupted Task Setup");
+
+    // Step 5: Activate reset during Task B
+    @(negedge clk);
+    rst = 1'b1;
+    #1; // Allow asynchronous reset to update registers
+
+    // Display information after reset
+    $display("After Reset: State = %0d, Active Task = %0d, Saved Task = %0d, Saved Steps = %0d, Paused = %b, Busy = %b",
+             dut.state, active_task_id,
+             dut.saved_task_id, dut.saved_progress,
+             task_paused, busy);
+
+    // Verify all task information was cleared
+    if (dut.state !== 3'b000 ||
+        active_task_id !== 8'd0 ||
+        active_priority !== 2'd0 ||
+        steps_completed !== 8'd0 ||
+        dut.saved_task_id !== 8'd0 ||
+        dut.saved_progress !== 8'd0 ||
+        dut.saved_valid !== 1'b0 ||
+        busy !== 1'b0 ||
+        task_paused !== 1'b0 ||
+        task_done !== 1'b0 ||
+        task_ready !== 1'b0 ||
+        process_enable !== 1'b0)
+        $fatal(1, "FAIL: Reset During Interrupted Task");
+    else
+        $display("PASS: Reset During Interrupted Task");
+
+    // Release reset
+    @(negedge clk);
+    rst = 1'b0;
+
+
     end
 
 
