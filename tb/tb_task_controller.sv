@@ -349,6 +349,49 @@ module tb_task_controller;
 
 
 
+    // Test 7: Resume Interrupted Task
+
+    // Step 1: Move from RESUME back to RUNNING
+    @(posedge clk);
+    #1; // Allow registers to update
+
+    // Display restored task information
+    $display("\nTest 7: Resume Interrupted Task");
+    $display("After Resume: State = %0d, Task ID = %0d, Priority = %0d, Steps = %0d, Paused = %b",
+             dut.state, active_task_id,
+             active_priority, steps_completed, task_paused);
+
+    // Verify Task A is restored with its saved progress
+    if (dut.state !== 3'b001 ||
+        active_task_id !== 8'd21 ||
+        active_priority !== 2'd1 ||
+        dut.total_steps !== 8'd5 ||
+        steps_completed !== 8'd2 ||
+        task_paused !== 1'b0 ||
+        dut.saved_valid !== 1'b0 ||
+        task_done !== 1'b0 ||
+        process_enable !== 1'b1)
+        $fatal(1, "FAIL: Task Resume Verification");
+
+    // Step 2: Allow Task A to continue processing
+    @(posedge clk);
+    #1;
+
+    // Display progress after one more processing step
+    $display("After Next Step: State = %0d, Task ID = %0d, Steps = %0d, Done = %b",
+             dut.state, active_task_id,
+             steps_completed, task_done);
+
+    // Verify Task A continues from step 3
+    if (dut.state !== 3'b001 ||
+        active_task_id !== 8'd21 ||
+        steps_completed !== 8'd3 ||
+        task_done !== 1'b0)
+        $fatal(1, "FAIL: Task Did Not Resume Correctly");
+    else
+        $display("PASS: Resume Interrupted Task");
+
+
 
     end
 
