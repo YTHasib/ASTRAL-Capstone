@@ -59,5 +59,42 @@ module tb_task_controller;
     );
 
     
+    initial begin
+
+        // Test 1: Reset Verification
+        #2 rst = 1'b1; // Activate reset
+        #1;            // Allow signals to update
+
+        // Display test name and results
+        $display("\nTest 1: Reset Verification");
+        $display("State = %0d, Busy = %b, Paused = %b, Steps = %0d, Done = %b, Ready = %b",
+                 dut.state, busy, task_paused,
+                 steps_completed, task_done, task_ready);
+
+        // Automatically verify reset conditions
+        if (dut.state !== 3'b000 ||
+            active_task_id !== 8'd0 ||
+            active_priority !== 2'd0 ||
+            steps_completed !== 8'd0 ||
+            busy !== 1'b0 ||
+            task_paused !== 1'b0 ||
+            task_done !== 1'b0 ||
+            completed_task_id !== 8'd0 ||
+            task_ready !== 1'b0 ||
+            process_enable !== 1'b0)
+            $fatal(1, "FAIL: Reset Verification");
+        else
+            $display("PASS: Reset Verification");
+
+        // Release reset
+        @(negedge clk);
+        rst = 1'b0;
+
+        #1;
+        $finish; // End simulation after Test 1
+
+    end
+
+
 
 endmodule
