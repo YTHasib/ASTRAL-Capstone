@@ -265,6 +265,90 @@ module tb_task_controller;
     task_valid = 1'b0;
 
 
+    // Test 5: Verify Saved Task Progress
+
+    // Move from PAUSE to HIGH_PRIORITY
+    @(posedge clk);
+    #1; // Allow registers to update
+
+    // Display test name and results
+    $display("\nTest 5: Verify Saved Task Progress");
+
+    $display("Active Task: State = %0d, Task ID = %0d, Priority = %0d, Steps = %0d",
+             dut.state, active_task_id,
+             active_priority, steps_completed);
+
+    $display("Saved Task: Task ID = %0d, Priority = %0d, Total Steps = %0d, Saved Progress = %0d",
+             dut.saved_task_id, dut.saved_priority,
+             dut.saved_total_steps, dut.saved_progress);
+
+    // Verify Task B is now active
+    if (dut.state !== 3'b011 ||
+        active_task_id !== 8'd22 ||
+        active_priority !== 2'd3 ||
+        steps_completed !== 8'd0 ||
+        dut.total_steps !== 8'd2)
+        $fatal(1, "FAIL: Urgent Task Activation");
+
+    // Verify Task A's information is still saved
+    if (dut.saved_task_id !== 8'd21 ||
+        dut.saved_priority !== 2'd1 ||
+        dut.saved_total_steps !== 8'd5 ||
+        dut.saved_progress !== 8'd2 ||
+        dut.saved_valid !== 1'b1 ||
+        task_paused !== 1'b1 ||
+        process_enable !== 1'b1)
+        $fatal(1, "FAIL: Saved Task Progress");
+    else
+        $display("PASS: Verify Saved Task Progress");
+
+
+    // Test 6: High-Priority Task Completion
+
+    // Step 1: Complete the first processing step of Task B
+    @(posedge clk);
+    #1; // Allow registers to update
+
+    $display("\nTest 6: High-Priority Task Completion");
+    $display("Before Completion: State = %0d, Task ID = %0d, Steps = %0d, Done = %b",
+             dut.state, active_task_id,
+             steps_completed, task_done);
+
+    // Verify Task B is still running after one step
+    if (dut.state !== 3'b011 ||
+        active_task_id !== 8'd22 ||
+        steps_completed !== 8'd1 ||
+        task_done !== 1'b0)
+        $fatal(1, "FAIL: High-Priority Task Progress");
+
+    // Step 2: Complete the second and final step
+    @(posedge clk);
+    #1;
+
+    // Display results after Task B completes
+    $display("After Completion: State = %0d, Completed Task ID = %0d, Steps = %0d, Done = %b, Paused = %b",
+             dut.state, completed_task_id,
+             steps_completed, task_done, task_paused);
+
+    // Verify Task B completed successfully
+    if (dut.state !== 3'b100 ||
+        completed_task_id !== 8'd22 ||
+        steps_completed !== 8'd2 ||
+        task_done !== 1'b1 ||
+        process_enable !== 1'b0)
+        $fatal(1, "FAIL: High-Priority Task Completion");
+
+    // Verify Task A's progress is still saved
+    if (dut.saved_task_id !== 8'd21 ||
+        dut.saved_progress !== 8'd2 ||
+        dut.saved_valid !== 1'b1 ||
+        task_paused !== 1'b1)
+        $fatal(1, "FAIL: Paused Task Information Lost");
+    else
+        $display("PASS: High-Priority Task Completion");
+
+
+
 
     end
 
