@@ -392,6 +392,54 @@ module tb_task_controller;
         $display("PASS: Resume Interrupted Task");
 
 
+    // Test 8: Lower-Priority Task Rejection
+
+    // Step 1: Introduce a lower-priority task
+    @(negedge clk);
+    task_valid = 1'b1;          // New task is available
+    task_id_in = 8'd23;         // Task C
+    task_priority_in = 2'd0;    // Lower priority than Task A
+    task_steps_in = 8'd4;       // Requires 4 steps
+
+    #1; // Allow combinational signals to update
+
+    // Display test name and initial conditions
+    $display("\nTest 8: Lower-Priority Task Rejection");
+    $display("Before Clock: Active Task = %0d, Active Priority = %0d, Incoming Priority = %0d, Task Ready = %b",
+             active_task_id, active_priority,
+             task_priority_in, task_ready);
+
+    // Verify that the lower-priority task is not accepted
+    // and the current task can continue processing
+    if (dut.state !== 3'b001 ||
+        task_ready !== 1'b0 ||
+        process_enable !== 1'b1)
+        $fatal(1, "FAIL: Lower-Priority Task Rejection");
+
+    // Step 2: Allow the current task to continue
+    @(posedge clk);
+    #1;
+
+    // Display results after the clock
+    $display("After Clock: State = %0d, Active Task = %0d, Steps = %0d, Paused = %b",
+             dut.state, active_task_id,
+             steps_completed, task_paused);
+
+    // Verify Task A continues without interruption
+    if (dut.state !== 3'b001 ||
+        active_task_id !== 8'd21 ||
+        active_priority !== 2'd1 ||
+        steps_completed !== 8'd4 ||
+        task_paused !== 1'b0 ||
+        task_done !== 1'b0)
+        $fatal(1, "FAIL: Current Task Was Interrupted");
+    else
+        $display("PASS: Lower-Priority Task Rejection");
+
+    // Stop requesting Task C
+    @(negedge clk);
+    task_valid = 1'b0;
+
 
     end
 
