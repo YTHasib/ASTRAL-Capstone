@@ -93,6 +93,53 @@ module tb_task_controller;
         #1;
         $finish; // End simulation after Test 1
 
+
+        // Test 2: Accept and Start a Normal Task
+
+        @(negedge clk);
+        task_valid = 1'b1;          // New task is available
+        task_id_in = 8'd17;         // Task ID = 17
+        task_priority_in = 2'd1;    // Low-priority task
+        task_steps_in = 8'd4;       // Task requires 4 processing steps
+
+        #1; // Allow combinational signals to update
+
+        // Display test name and initial conditions
+        $display("\nTest 2: Accept and Start a Normal Task");
+        $display("Before Clock: State = %0d, Task Ready = %b, Task Valid = %b",
+                dut.state, task_ready, task_valid);
+
+        // Check that the controller is ready to accept the task
+        if (dut.state !== 3'b000 ||
+            task_ready !== 1'b1)
+            $fatal(1, "FAIL: Task Acceptance");
+
+        // Wait for rising clock edge to accept the task
+        @(posedge clk);
+        #1;
+
+        // Display results after task acceptance
+        $display("After Clock: State = %0d, Task ID = %0d, Priority = %0d, Steps = %0d, Busy = %b",
+                dut.state, active_task_id, active_priority,
+                steps_completed, busy);
+
+        // Verify that the controller entered RUNNING
+        if (dut.state !== 3'b001 ||
+            active_task_id !== 8'd17 ||
+            active_priority !== 2'd1 ||
+            steps_completed !== 8'd0 ||
+            busy !== 1'b1 ||
+            process_enable !== 1'b1 ||
+            task_paused !== 1'b0)
+            $fatal(1, "FAIL: Task Start Verification");
+        else
+            $display("PASS: Accept and Start a Normal Task");
+
+        // Stop requesting a new task
+        @(negedge clk);
+        task_valid = 1'b0;
+
+
     end
 
 
