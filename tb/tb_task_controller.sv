@@ -182,6 +182,90 @@ module tb_task_controller;
 
 
 
+    // Test 4: High-Priority Task Interrupt
+
+    // Step 1: Start a low-priority task
+    @(negedge clk);
+    task_valid = 1'b1;          // New task available
+    task_id_in = 8'd21;         // Task A
+    task_priority_in = 2'd1;    // Low priority
+    task_steps_in = 8'd5;       // Requires 5 steps
+
+    @(posedge clk);
+    #1;
+
+    // Verify Task A starts running
+    if (dut.state !== 3'b001 ||
+        active_task_id !== 8'd21 ||
+        steps_completed !== 8'd0)
+        $fatal(1, "FAIL: Task A Did Not Start");
+
+    // Stop sending the initial task
+    @(negedge clk);
+    task_valid = 1'b0;
+
+    // Step 2: Allow Task A to complete 2 steps
+    repeat (2) begin
+        @(posedge clk);
+        #1;
+    end
+
+    $display("\nTest 4: High-Priority Task Interrupt");
+    $display("Before Interrupt: State = %0d, Task ID = %0d, Priority = %0d, Steps = %0d",
+             dut.state, active_task_id,
+             active_priority, steps_completed);
+
+    // Verify Task A has completed 2 steps
+    if (steps_completed !== 8'd2 ||
+        dut.state !== 3'b001)
+        $fatal(1, "FAIL: Task A Progress");
+
+    // Step 3: Introduce higher-priority Task B
+    @(negedge clk);
+    task_valid = 1'b1;
+    task_id_in = 8'd22;         // Task B
+    task_priority_in = 2'd3;    // Higher priority
+    task_steps_in = 8'd2;       // Requires 2 steps
+
+    #1; // Allow combinational signals to update
+
+    // Verify controller accepts the urgent task
+    // and stops advancing Task A
+    if (task_ready !== 1'b1 ||
+        process_enable !== 1'b0)
+        $fatal(1, "FAIL: Interrupt Request");
+
+    // Step 4: Accept interruption on rising edge
+    @(posedge clk);
+    #1;
+
+    // Display controller status after interruption
+    $display("After Interrupt: State = %0d, Paused = %b, Saved Task ID = %0d, Saved Steps = %0d",
+             dut.state, task_paused,
+             dut.saved_task_id, dut.saved_progress);
+
+    // Verify Task A's information was saved
+    if (dut.state !== 3'b010 ||
+        task_paused !== 1'b1 ||
+        dut.saved_task_id !== 8'd21 ||
+        dut.saved_priority !== 2'd1 ||
+        dut.saved_total_steps !== 8'd5 ||
+        dut.saved_progress !== 8'd2 ||
+        dut.urgent_task_id !== 8'd22 ||
+        dut.urgent_priority !== 2'd3 ||
+        dut.urgent_total_steps !== 8'd2 ||
+        steps_completed !== 8'd2 ||
+        process_enable !== 1'b0)
+        $fatal(1, "FAIL: High-Priority Task Interrupt");
+    else
+        $display("PASS: High-Priority Task Interrupt");
+
+    // Stop sending Task B
+    @(negedge clk);
+    task_valid = 1'b0;
+
+
+
     end
 
 
