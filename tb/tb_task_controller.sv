@@ -542,6 +542,146 @@ module tb_task_controller;
     rst = 1'b0;
 
 
+    // Test 10: Complete Task Interruption and Resume
+
+    $display("\nTest 10: Complete Task Interruption and Resume");
+
+    // Step 1: Start Task A (Low Priority)
+    @(negedge clk);
+    task_valid = 1'b1;
+    task_id_in = 8'd41;         // Task A
+    task_priority_in = 2'd1;    // Low priority
+    task_steps_in = 8'd5;       // 5 processing steps
+
+    @(posedge clk);
+    #1;
+
+    // Verify Task A started
+    if (dut.state !== 3'b001 ||
+        active_task_id !== 8'd41 ||
+        steps_completed !== 8'd0)
+        $fatal(1, "FAIL: Task A Did Not Start");
+
+    // Stop sending Task A
+    @(negedge clk);
+    task_valid = 1'b0;
+
+    // Step 2: Complete 2 steps of Task A
+    repeat (2) begin
+        @(posedge clk);
+        #1;
+    end
+
+    $display("Task A Running: Task ID = %0d, Steps = %0d",
+             active_task_id, steps_completed);
+
+    if (steps_completed !== 8'd2 ||
+        dut.state !== 3'b001)
+        $fatal(1, "FAIL: Task A Progress");
+
+
+    // Step 3: Introduce higher-priority Task B
+    @(negedge clk);
+    task_valid = 1'b1;
+    task_id_in = 8'd42;         // Task B
+    task_priority_in = 2'd3;    // High priority
+    task_steps_in = 8'd2;       // 2 processing steps
+
+    #1;
+
+    // Verify that Task B can interrupt Task A
+    if (task_ready !== 1'b1 ||
+        process_enable !== 1'b0)
+        $fatal(1, "FAIL: Interrupt Not Accepted");
+
+    @(posedge clk);
+    #1;
+
+    // Verify Task A was paused
+    if (dut.state !== 3'b010 ||
+        dut.saved_task_id !== 8'd41 ||
+        dut.saved_progress !== 8'd2 ||
+        task_paused !== 1'b1)
+        $fatal(1, "FAIL: Task A Not Saved");
+
+    $display("Task A Paused: Saved ID = %0d, Saved Steps = %0d",
+             dut.saved_task_id, dut.saved_progress);
+
+    // Stop sending Task B
+    @(negedge clk);
+    task_valid = 1'b0;
+
+
+    // Step 4: Switch to Task B
+    @(posedge clk);
+    #1;
+
+    // Verify Task B is active
+    if (dut.state !== 3'b011 ||
+        active_task_id !== 8'd42 ||
+        active_priority !== 2'd3 ||
+        steps_completed !== 8'd0)
+        $fatal(1, "FAIL: Task B Did Not Start");
+
+
+    // Step 5: Complete both steps of Task B
+    repeat (2) begin
+        @(posedge clk);
+        #1;
+    end
+
+    $display("Task B Completed: Task ID = %0d, Steps = %0d, Done = %b",
+             completed_task_id, steps_completed, task_done);
+
+    // Verify Task B finished first
+    if (dut.state !== 3'b100 ||
+        completed_task_id !== 8'd42 ||
+        steps_completed !== 8'd2 ||
+        task_done !== 1'b1 ||
+        dut.saved_progress !== 8'd2)
+        $fatal(1, "FAIL: Task B Completion");
+
+
+    // Step 6: Resume Task A
+    @(posedge clk);
+    #1;
+
+    $display("Task A Resumed: Task ID = %0d, Steps = %0d, Paused = %b",
+             active_task_id, steps_completed, task_paused);
+
+    // Verify Task A resumes from its saved progress
+    if (dut.state !== 3'b001 ||
+        active_task_id !== 8'd41 ||
+        active_priority !== 2'd1 ||
+        dut.total_steps !== 8'd5 ||
+        steps_completed !== 8'd2 ||
+        task_paused !== 1'b0)
+        $fatal(1, "FAIL: Task A Resume");
+
+
+    // Step 7: Complete the remaining 3 steps
+    repeat (3) begin
+        @(posedge clk);
+        #1;
+    end
+
+    $display("Task A Completed: Task ID = %0d, Steps = %0d, Done = %b, State = %0d",
+             completed_task_id, steps_completed,
+             task_done, dut.state);
+
+    // Verify Task A finished without restarting
+    if (dut.state !== 3'b000 ||
+        completed_task_id !== 8'd41 ||
+        steps_completed !== 8'd5 ||
+        task_done !== 1'b1 ||
+        busy !== 1'b0 ||
+        task_paused !== 1'b0)
+        $fatal(1, "FAIL: Complete Task Execution");
+    else
+        $display("PASS: Complete Task Interruption and Resume");
+
+
+
     end
 
 
